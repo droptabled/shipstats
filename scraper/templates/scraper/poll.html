@@ -1,0 +1,7 @@
+<ul>
+	<form action="{% url 'scraper:scrape' %}" method="post">
+		{% csrf_token %}
+		<input type="text" name="wg_id">
+		<input type="submit" value="Load into DB">
+	</form>
+</ul>
