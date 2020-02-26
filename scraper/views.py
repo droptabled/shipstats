@@ -52,10 +52,17 @@ def parse(wg_id, username = None):
         # only update if the last updated was less than an hour ago
         if created is False and (datetime.now(tz = pytz.utc) - user.updated_at).seconds < 3600:
             return 'Sorry, wait at least 1 hour before requesting a refresh'
+        
 
         # stop if no user found or has no PVP stats
         if user_data is None:
             return 'Sorry, user has not played any games'
+            
+
+        # if it turns out they only have ships for coops, delete from db
+        if len(user_data) < 20:
+            user.delete()
+            return 'Sorry, user has not played enough different ships'
 
         ships = []
         for ship in user_data:
@@ -69,10 +76,7 @@ def parse(wg_id, username = None):
                     )
                 )
                 
-        # if it turns out they only have ships for coops, delete from db
-        if len(ships) == 0:
-            user.delete()
-            return 'Sorry, user has not played any PvP games'
+        
 
         UserStat.objects.bulk_create(ships)
         return 'Done, updated ' + str(len(ships)) + ' rows'
