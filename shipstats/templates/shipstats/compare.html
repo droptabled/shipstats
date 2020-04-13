@@ -1,0 +1,41 @@
+{% load static %}
+<head>
+    <title>Compare Relative Ship Winrates</title>
+        <meta charset="utf-8">
+        <link href="{% static 'plotstyle.css' %}" rel="stylesheet">
+        <script src="https://code.jquery.com/jquery-3.1.0.min.js"></script>
+		<script src="https://d3js.org/d3.v5.min.js"></script>      	
+</head>
+<body>
+	<table>
+		<tr>
+			<td>First Ship</td>
+			<td>
+				<select id = "ship1">
+				{% for entry in ships %}
+					<option value="{{ entry.id }}">{{ entry.name }}</option>
+				{% endfor %}
+				</select>
+			</td>
+		</tr>
+		<tr>
+			<td>Second Ship</td>
+			<td>
+				<select id = "ship2">
+				{% for entry in ships %}
+					<option value="{{ entry.id }}">{{ entry.name }}</option>
+				{% endfor %}
+				</select>
+			</td>
+		</tr>
+	</table>
+	<p>
+		<button id="Submit" class="generate" value="1">Compare</button>
+		<button id="Scatter" class="generate" value="2">Compare (Raw)</button>
+	</p>
+
+	<div id="svgElement1"></div>
+</body>
+
+
+<script src="{% static 'graph.js' %}"></script>

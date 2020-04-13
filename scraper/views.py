@@ -6,14 +6,13 @@ from django.shortcuts import render
 # Create your views here.
 from django.http import HttpResponse
 from django.template import loader
-from .models import User, UserStat
+from django.db import models, transaction, connection
+from .models import User, UserStat, Ship
 from datetime import datetime
 import requests, pytz, os, sys
 
-
 def index(request):
     return render(request, 'scraper/poll.html')
-
 
 def parse(wg_id, username = None):
     wg_id = str(wg_id)
@@ -53,40 +52,64 @@ def parse(wg_id, username = None):
         if created is False and (datetime.now(tz = pytz.utc) - user.updated_at).seconds < 3600:
             return 'Sorry, wait at least 1 hour before requesting a refresh'
         
-
         # stop if no user found or has no PVP stats
         if user_data is None:
+            user.delete()
             return 'Sorry, user has not played any games'
             
-
-        # if it turns out they only have ships for coops, delete from db
-        if len(user_data) < 20:
+        # exclude users that potentially only have low tier ships
+        if len(user_data) < 10:
             user.delete()
             return 'Sorry, user has not played enough different ships'
 
         ships = []
         for ship in user_data:
-            if ship['pvp']['wins'] or ship['pvp']['losses']:
-                ships.append(
-                    UserStat(
-                        wg_user_id = wg_id,
-                        ship_id = ship['ship_id'],
-                        wins = ship['pvp']['wins'],
-                        losses = ship['pvp']['losses']
+            if (ship['pvp']['wins'] + ship['pvp']['losses']) > 50:
+                # find the ship in the shipnames db. if not found, update the db
+                ship_found = False
+                try:
+                    shipname = Ship.objects.get(ship_id = ship['ship_id'])
+                    ship_found = True
+                except Ship.DoesNotExist:
+                    name_response = requests.post(
+                        'https://api.worldofwarships.com/wows/encyclopedia/ships/',
+                        {
+                            'application_id': os.environ['APP_ID'],
+                            'fields': 'name',
+                            'ship_id': ship['ship_id']
+                        }
+                    ).json()['data']
+                    
+                    # WG has a lot of db cruft, if you find one of these ships, ignore it
+                    if name_response[str(ship['ship_id'])] is not None:
+                        shipname = Ship.objects.create(ship_id = ship['ship_id'], name = name_response[str(ship['ship_id'])]['name'])
+                        ship_found = True
+                        
+                if ship_found:
+                    ships.append(
+                        UserStat(
+                            wg_user = user,
+                            ship_id = shipname,
+                            wins = ship['pvp']['wins'],
+                            losses = ship['pvp']['losses']
+                        )
                     )
-                )
                 
         
-
-        UserStat.objects.bulk_create(ships)
-        return 'Done, updated ' + str(len(ships)) + ' rows'
+        if len(ships) == 0:
+            user.delete()
+            return 'User had no ships with over 50 games played'
+        else:
+            UserStat.objects.bulk_create(ships)
+            return 'Done, updated ' + str(len(ships)) + ' rows'
     else:
         return 'Something went wrong with the server'
 
-
 def scrape(request):
-    wg_id = request.POST['wg_id']
-    return HttpResponse(parse(wg_id))
+    ids = request.POST['wg_id'].split("/")
+    for id in ids:
+        parse(id)
+    return HttpResponse("done")
 
 def scrapestart(request):
     return render(request, 'scraper/scrapestart.html')
@@ -98,7 +121,6 @@ def nextname(name):
              break
     next_name = name[:-idx] + character_set[character_set.find(name[-idx]) + 1]
     return next_name.ljust(3,'a')
-
 
 def scrapeall(request):
     name_start = request.POST['name_start']
@@ -125,8 +147,9 @@ def scrapeall(request):
             
         # iterate through the names found
         for name in name_data:
-            print("Account: " + name['nickname'] + " Result:" + parse(name['account_id'], name['nickname']), file = sys.stderr)
+            try:
+                print("Account: " + name['nickname'] + " Result:" + parse(name['account_id'], name['nickname']), file = sys.stderr)
+            except Exception:
+                pass
             
     return HttpResponse("Placeholder")
-    
-    

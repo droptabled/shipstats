@@ -1,0 +1,46 @@
+body {
+  font: 10px sans-serif;
+}
+
+.area{
+  shape-rendering: geometricPrecision;
+  fill: #ccc !important;
+}
+.boxplot{
+  shape-rendering: crispEdges;
+  fill: none;
+  stroke: black;
+  stroke-width: 1px;
+}
+.boxplot.fill{
+  fill: black;
+}
+.boxplot.mean, .boxplot.median{
+  fill: white;
+  stroke: white;
+}
+.boxplot.mean{
+  shape-rendering: geometricPrecision;
+}
+
+.axis path, .axis line {
+  fill: none;
+  stroke: #000;
+  stroke-width: 1px;
+  color-rendering: optimizeQuality !important;
+  shape-rendering: crispEdges !important;
+  text-rendering: geometricPrecision !important; 
+}
+
+.tooltip {
+  position: absolute;
+  text-align: left;
+  width: 200px;
+  height: 30px;
+  padding: 5px;
+  font: 12px sans-serif;
+  background: lightsteelblue;
+  border: 0px;
+  border-radius: 8px;
+  pointer-events: none;
+}
