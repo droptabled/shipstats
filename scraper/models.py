@@ -10,12 +10,44 @@ class User(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 class Ship(models.Model):
-    ship_id = models.BigIntegerField(default=0, db_index=True)
+    wg_identifier = models.BigIntegerField(default=0, db_index=True)
     name = models.CharField(max_length=200)
+    tier = models.IntegerField(default=0)
+    playercount = models.IntegerField(default=0)
+    median_wr = models.DecimalField(max_digits=6, decimal_places=5, default=0)
+    nation = models.CharField(max_length=255)
+    
+    class ShipType(models.IntegerChoices):
+        DD = 0
+        CA = 1
+        BB = 2
+        CV = 3
+        
+    type = models.IntegerField(choices=ShipType.choices)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def update_node(self):
+        shipstats = list(UserStat.objects.filter(ship = self))
+        self.playercount = len(shipstat)
+        shipstats.sort(key=lambda x: (x.wins/(x.losses+x.wins)))
+        median_ship = shipstats[round(playercount/2)]
+        self.median_wr = median_ship.wins/(median_ship.losses+median_ship.wins)
+        self.save()
+    
+    def get_node(self):
+        if datetime.datetime.now(datetime.timezone.utc) - self.updated_at > datetime.timedelta(days = 1):
+            self.update_node()
+        return {
+            "node": self.pk,
+            "name": self.name,
+            "playercount": self.playercount,
+            "median_wr": self.median_wr,
+            "nation": self.nation
+        }
 
 class UserStat(models.Model):
     wg_user = models.ForeignKey(User, to_field='wg_user', on_delete=models.CASCADE)
-    ship_id = models.ForeignKey(Ship, on_delete=models.CASCADE)
+    ship = models.ForeignKey(Ship, on_delete=models.CASCADE)
     wins = models.IntegerField(default=0)
     losses = models.IntegerField(default=0)
 
@@ -32,8 +64,8 @@ class Plot(models.Model):
     plot_type = models.IntegerField(choices=PlotType.choices)
     
     def extract_stats(self):
-        ship_primary_stats = UserStat.objects.filter(ship_id__exact = self.ship_primary)
-        ship_secondary_stats = UserStat.objects.filter(ship_id__exact = self.ship_secondary)
+        ship_primary_stats = UserStat.objects.filter(wg_identifier__exact = self.ship_primary)
+        ship_secondary_stats = UserStat.objects.filter(wg_identifier__exact = self.ship_secondary)
         primary_ids = set(ship_primary_stats.values_list('wg_user', flat=True))
         secondary_ids = set(ship_secondary_stats.values_list('wg_user', flat=True))
         

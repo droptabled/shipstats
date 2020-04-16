@@ -68,7 +68,7 @@ def parse(wg_id, username = None):
                 # find the ship in the shipnames db. if not found, update the db
                 ship_found = False
                 try:
-                    shipname = Ship.objects.get(ship_id = ship['ship_id'])
+                    shipname = Ship.objects.get(wg_identifier = ship['ship_id'])
                     ship_found = True
                 except Ship.DoesNotExist:
                     name_response = requests.post(
@@ -82,14 +82,14 @@ def parse(wg_id, username = None):
                     
                     # WG has a lot of db cruft, if you find one of these ships, ignore it
                     if name_response[str(ship['ship_id'])] is not None:
-                        shipname = Ship.objects.create(ship_id = ship['ship_id'], name = name_response[str(ship['ship_id'])]['name'])
+                        shipname = Ship.objects.create(wg_identifier = ship['ship_id'], name = name_response[str(ship['ship_id'])]['name'])
                         ship_found = True
                         
                 if ship_found:
                     ships.append(
                         UserStat(
                             wg_user = user,
-                            ship_id = shipname,
+                            wg_identifier = shipname,
                             wins = ship['pvp']['wins'],
                             losses = ship['pvp']['losses']
                         )
