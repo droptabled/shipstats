@@ -7,7 +7,7 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.template import loader
 from django.db import models, transaction, connection
-from .models import User, UserStat, Ship
+from .models import User, UserStat, Ship, Nation, ShipType
 from datetime import datetime
 import requests, pytz, os, sys
 
@@ -153,3 +153,21 @@ def scrapeall(request):
                 pass
             
     return HttpResponse("Placeholder")
+
+def maintenance(request):
+    # shameful scripts to fix screwups here
+    for ship in Ship.objects.all():
+        response = requests.post(
+            'https://api.worldofwarships.com/wows/encyclopedia/ships/',
+            {
+                'application_id': os.environ['APP_ID'],
+                'fields': 'is_premium,is_special',
+                'ship_id': ship.wg_identifier
+            }
+        ).json()['data'][str(ship.wg_identifier)]
+        if response['is_premium'] or response['is_special']:
+            ship.economy_type = Ship.EconomyType.PREMIUM
+        else:
+            ship.economy_type = Ship.EconomyType.TECHTREE
+        ship.save()
+    return HttpResponse("Done")

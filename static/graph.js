@@ -137,15 +137,12 @@ function drawScatter(svg, results, x, y){
 var padding={top:10, bottom:100, left:50, right:10};
 var plottype;
 $("button.generate").click(function () {
-	var first = $("#ship1").val();
-	var second = $("#ship2").val();
-	plottype = $(this).val();
 	$.ajax({
 		url: '/compare_ships',
 		data: {
-			ship1: first,
-			ship2: second,
-			type: plottype
+			ship1: $("#ship1").val(),
+			ship2: $("#ship2").val(),
+			type: $(this).val()
 		},
 		dataType: 'json',
 		success: function (data) {

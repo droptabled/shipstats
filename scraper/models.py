@@ -2,12 +2,19 @@
 from __future__ import unicode_literals
 from django.db import models
 from collections import defaultdict
-import math, json
+import math, json, datetime
 
 class User(models.Model):
     wg_user = models.IntegerField(default=0, unique=True)
     name = models.CharField(max_length=255)
     updated_at = models.DateTimeField(auto_now=True)
+
+class Nation(models.Model):
+    name = models.CharField(max_length=255)
+    human_name = models.CharField(max_length=255)
+
+class ShipType(models.Model):
+    name = models.CharField(max_length=255)
 
 class Ship(models.Model):
     wg_identifier = models.BigIntegerField(default=0, db_index=True)
@@ -15,22 +22,21 @@ class Ship(models.Model):
     tier = models.IntegerField(default=0)
     playercount = models.IntegerField(default=0)
     median_wr = models.DecimalField(max_digits=6, decimal_places=5, default=0)
-    nation = models.CharField(max_length=255)
-    
-    class ShipType(models.IntegerChoices):
-        DD = 0
-        CA = 1
-        BB = 2
-        CV = 3
-        
-    type = models.IntegerField(choices=ShipType.choices)
+    nation = models.ForeignKey(Nation, on_delete=models.CASCADE)
+    type = models.ForeignKey(ShipType, on_delete=models.CASCADE)
     updated_at = models.DateTimeField(auto_now=True)
     
+    class EconomyType(models.IntegerChoices):
+        TECHTREE = 1
+        PREMIUM = 2
+    
+    economy_type = models.IntegerField(choices=EconomyType.choices)
+
     def update_node(self):
         shipstats = list(UserStat.objects.filter(ship = self))
-        self.playercount = len(shipstat)
+        self.playercount = len(shipstats)
         shipstats.sort(key=lambda x: (x.wins/(x.losses+x.wins)))
-        median_ship = shipstats[round(playercount/2)]
+        median_ship = shipstats[round(self.playercount/2)]
         self.median_wr = median_ship.wins/(median_ship.losses+median_ship.wins)
         self.save()
     
@@ -42,7 +48,7 @@ class Ship(models.Model):
             "name": self.name,
             "playercount": self.playercount,
             "median_wr": self.median_wr,
-            "nation": self.nation
+            "nation": self.nation.name
         }
 
 class UserStat(models.Model):
@@ -64,8 +70,8 @@ class Plot(models.Model):
     plot_type = models.IntegerField(choices=PlotType.choices)
     
     def extract_stats(self):
-        ship_primary_stats = UserStat.objects.filter(wg_identifier__exact = self.ship_primary)
-        ship_secondary_stats = UserStat.objects.filter(wg_identifier__exact = self.ship_secondary)
+        ship_primary_stats = UserStat.objects.filter(ship = self.ship_primary)
+        ship_secondary_stats = UserStat.objects.filter(ship = self.ship_secondary)
         primary_ids = set(ship_primary_stats.values_list('wg_user', flat=True))
         secondary_ids = set(ship_secondary_stats.values_list('wg_user', flat=True))
         

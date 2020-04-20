@@ -1,72 +1,68 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
-<script src="https://d3js.org/d3.v2.min.js?2.9.3"></script>
-<style>
-
-.link {
-  stroke: #aaa;
-}
-
-.node text {
-stroke:#333;
-cursos:pointer;
-}
-
-.node circle{
-stroke:#fff;
-stroke-width:3px;
-fill:#555;
-}
-
-</style>
+{% load static %}
+<head>
+	<title>Graph Relative Ship Winrates</title>
+	<meta charset="utf-8">
+	<link href="{% static 'graphstyle.css' %}" rel="stylesheet">
+	<script src="https://code.jquery.com/jquery-3.1.0.min.js"></script>
+	<script src="https://d3js.org/d3.v4.js"></script>
+</head>
 <body>
-<script>
-
-var width = 960;
-var height = 500;
-
-var svg = d3.select("body").append("svg")
-	.attr("width", width)
-	.attr("height", height);
-
-var force = d3.layout.force()
-	.gravity(.05)
-	.distance(100)
-	.charge(-100)
-	.size([width, height]);
-
-d3.json("graphdata", function(json) {
-	force.nodes(json.nodes).links(json.links).start();
-
-	var link = svg.selectAll(".link")
-		.data(json.links)
-		.enter().append("line")
-		.attr("class", "link")
-		.style("stroke-width", function(d) { return Math.sqrt(d.weight); });
-
-	var node = svg.selectAll(".node")
-		.data(json.nodes)
-		.enter().append("g")
-		.attr("class", "node")
-		.call(force.drag);
-
-	node.append("circle")
-		.attr("r","5");
-
-	node.append("text")
-		.attr("dx", 12)
-		.attr("dy", ".35em")
-		.text(function(d) { return d.name });
-
-	force.on("tick", function() {
-		link.attr("x1", function(d) { return d.source.x; })
-			.attr("y1", function(d) { return d.source.y; })
-			.attr("x2", function(d) { return d.target.x; })
-			.attr("y2", function(d) { return d.target.y; });
-
-		node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
-	});
-});
-
-</script>
+<table class = "menu">
+	<tr>
+		<td><table><th>Tier</th></table></td>
+		<td><table><th>Nation</th></table></td>
+		<td><table><th>Type</th></table></td>
+		<td><table><th>Premium</th></table></td>
+	</tr>
+	<tr>
+		<td>
+			<div class="options"><table>
+				{% for val in range %}
+				<tr><td><input class="tiervalue" type="checkbox" value="{{ val }}">{{ val }}</input></td></tr>
+				{% endfor %}
+			</table></div>
+		</td>
+		<td>
+			<div class="options"><table>
+				{% for entry in nations %}
+				<tr><td><input class="nationvalue" type="checkbox" value="{{ entry.pk }}">{{ entry.human_name }}</input</td></tr>
+				{% endfor %}
+			</table></div>
+		</td>
+		<td>
+			<div class="options"><table>
+				{% for type in types %}
+				<tr><td><input class="typevalue" type="checkbox" value="{{ type.pk }}">{{ type.name }}</input></td></tr>
+				{% endfor %}
+			</table></div>
+		</td>
+		<td>
+			<div class="options"><table>
+				<tr><td><select id="premium">
+					<option value="0">All</option>
+					<option value="1">Tech Tree</option>
+					<option value="2">Premium</option>
+				</select></td></tr>
+			</table></div>
+		</td>
+	</tr>
+</table>
+<button id="Submit">Compare</button>
 </body>
+<svg>
+	<defs>
+	{% for entry in nations %}
+	<pattern id="{{ entry.name }}" x="0%" y="0%" height="100%" width="100%"viewBox="0 0 512 512">
+		<image x="0%" y="0%" width="512" height="512" href="/static/{{ entry.name }}.png"></image>
+	</pattern>
+	{% endfor %}
+	<filter x="0" y="0" width="1" height="1" id="bgwhite">
+      <feFlood flood-color="white"/>
+      <feComposite in="SourceGraphic" operator="or" />
+    </filter>
+	</defs>
+	<g id="canvas"></g>
+</svg>
+
+<script src="{% static 'physicssim.js' %}"></script>
