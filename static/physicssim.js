@@ -47,8 +47,8 @@ $("#Submit").click(function(){
 			force.nodes(json.nodes).force("link").links(json.edges);
 
 			var link = g.selectAll(".link").data(json.edges).enter().append("line")
-				.attr("stroke-width", function (d) { return Math.max(d.relative_strength*max_line_thickness, 1); })
-				.attr("stroke", function(d) { return "rgb(0,"+d.relative_strength*255+",0)"; });
+				.attr("stroke-width", "3")
+				.attr("stroke", "black");
 
 			var node = g.selectAll(".node")
 				.data(json.nodes)
